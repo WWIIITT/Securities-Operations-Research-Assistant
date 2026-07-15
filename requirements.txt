@@ -1,0 +1,11 @@
+langgraph
+langchain
+langchain-openai
+langchain-chroma
+chromadb
+yfinance
+gradio
+langsmith
+python-dotenv
+pytest
+
