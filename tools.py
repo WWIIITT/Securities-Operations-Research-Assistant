@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from market_symbols import resolve_market_symbol
+
 try:
     from langchain_core.tools import tool
 except ImportError:  # Minimal local fallback for tests before dependencies are installed.
@@ -26,8 +28,9 @@ except ImportError:  # Minimal local fallback for tests before dependencies are 
 @tool
 def get_stock_data(ticker: str) -> dict[str, Any]:
     """Fetch current stock data and basic company information from yfinance."""
-    normalized_ticker = (ticker or "").strip().upper()
-    if not normalized_ticker:
+    symbol = resolve_market_symbol(ticker)
+    normalized_ticker = symbol["yfinance_symbol"]
+    if not symbol["query_symbol"]:
         return {
             "status": "error",
             "message": "A non-empty ticker is required.",
@@ -41,6 +44,7 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
             "status": "error",
             "message": "The yfinance package is not installed. Run the project setup first.",
             "ticker": normalized_ticker,
+            "requested_symbol": symbol["query_symbol"],
         }
 
     try:
@@ -52,6 +56,7 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
             "status": "error",
             "message": f"Unable to fetch market data for {normalized_ticker}: {exc}",
             "ticker": normalized_ticker,
+            "requested_symbol": symbol["query_symbol"],
         }
 
     if history.empty and not info:
@@ -59,6 +64,7 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
             "status": "error",
             "message": f"No market data found for ticker {normalized_ticker}.",
             "ticker": normalized_ticker,
+            "requested_symbol": symbol["query_symbol"],
         }
 
     latest_close = None
@@ -68,7 +74,8 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
     return {
         "status": "ok",
         "ticker": normalized_ticker,
-        "company_name": info.get("shortName") or info.get("longName") or normalized_ticker,
+        "requested_symbol": symbol["query_symbol"],
+        "company_name": info.get("shortName") or info.get("longName") or symbol["label"] or normalized_ticker,
         "currency": info.get("currency"),
         "current_price": info.get("currentPrice") or info.get("regularMarketPrice") or latest_close,
         "previous_close": info.get("previousClose"),

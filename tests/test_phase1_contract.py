@@ -13,6 +13,10 @@ def test_env_example_contains_required_variables():
         "LANGSMITH_ENDPOINT",
         "LANGSMITH_API_KEY",
         "LANGSMITH_PROJECT",
+        "MCP_ENABLED",
+        "MCP_SERVER_COMMAND",
+        "MCP_SERVER_ARGS",
+        "MCP_TIMEOUT_SECONDS",
     ]
 
     for key in required_keys:

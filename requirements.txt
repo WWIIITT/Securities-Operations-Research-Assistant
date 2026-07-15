@@ -8,4 +8,4 @@ gradio
 langsmith
 python-dotenv
 pytest
-
+mcp

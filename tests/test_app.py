@@ -60,5 +60,7 @@ def test_readme_documents_install_and_run_commands():
     assert "pip install -r requirements.txt" in readme
     assert "python app.py" in readme
     assert "python evals.py" in readme
+    assert "python rag_evals.py" in readme
+    assert "python mcp_server.py" in readme
     assert "LANGSMITH_PROJECT" in readme
     assert "LANGCHAIN_API_KEY" not in readme
