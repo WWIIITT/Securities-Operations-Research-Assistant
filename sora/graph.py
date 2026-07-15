@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-import nodes
-from nodes import COMPLIANCE_ROUTE, MARKET_ROUTE
-from state import AgentState
+from . import nodes
+from .nodes import COMPLIANCE_ROUTE, MARKET_ROUTE
+from .state import AgentState
 
 
 def _route_from_state(state: AgentState) -> str:

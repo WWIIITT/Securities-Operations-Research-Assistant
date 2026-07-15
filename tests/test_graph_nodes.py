@@ -1,4 +1,4 @@
-import nodes
+import sora.nodes as nodes
 
 
 def test_router_node_routes_stock_query_to_market_analysis(monkeypatch):
@@ -81,7 +81,7 @@ def test_reviewer_node_retrieves_rule_and_appends_disclaimer(monkeypatch):
 
 
 def test_build_graph_invokes_analyst_then_reviewer(monkeypatch):
-    import graph
+    import sora.graph as graph
     monkeypatch.setattr(nodes, "build_chat_model", lambda: (_ for _ in ()).throw(RuntimeError("no llm")))
 
     def fake_call_tool(name, payload):

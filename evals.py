@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from graph import build_graph
+from sora.graph import build_graph
 
 DATASET_NAME = "sora-financial-agent-smoke"
 EXPERIMENT_PREFIX = "sora-poc"

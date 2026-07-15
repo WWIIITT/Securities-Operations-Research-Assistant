@@ -1,4 +1,4 @@
-import nodes
+import sora.nodes as nodes
 
 
 class FakeResponse:
@@ -17,7 +17,7 @@ class FakeLLM:
 
 
 def test_build_chat_model_reads_openai_compatible_env(monkeypatch):
-    import llm
+    import sora.llm as llm
 
     captured = {}
 

@@ -1,11 +1,11 @@
 def test_mcp_server_registers_expected_tool_names():
-    import mcp_server
+    import sora.mcp_server as mcp_server
 
     assert set(mcp_server.TOOL_NAMES) == {"get_stock_data", "search_compliance_policy"}
 
 
 def test_mcp_client_falls_back_to_local_tools(monkeypatch):
-    import mcp_client
+    import sora.mcp_client as mcp_client
 
     monkeypatch.setenv("MCP_ENABLED", "false")
     result = mcp_client.call_tool("get_stock_data", {"ticker": ""})
@@ -15,7 +15,7 @@ def test_mcp_client_falls_back_to_local_tools(monkeypatch):
 
 
 def test_mcp_client_can_be_monkeypatched_for_nodes(monkeypatch):
-    import nodes
+    import sora.nodes as nodes
 
     calls = []
 

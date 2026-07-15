@@ -4,10 +4,9 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
 from typing import Any
 
-from tools import get_stock_data, search_compliance_policy
+from .tools import get_stock_data, search_compliance_policy
 
 LOCAL_TOOLS = {
     "get_stock_data": get_stock_data,
@@ -48,7 +47,7 @@ async def _call_tool_via_mcp(name: str, payload: dict[str, Any]) -> dict[str, An
     from mcp.client.stdio import stdio_client
 
     command = os.getenv("MCP_SERVER_COMMAND", sys.executable)
-    args_text = os.getenv("MCP_SERVER_ARGS", str(Path(__file__).with_name("mcp_server.py")))
+    args_text = os.getenv("MCP_SERVER_ARGS", "-m sora.mcp_server")
     args = [part for part in args_text.split(" ") if part]
     timeout = float(os.getenv("MCP_TIMEOUT_SECONDS", "8"))
 

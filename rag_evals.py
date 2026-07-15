@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
-from tools import search_compliance_policy
+from sora.tools import search_compliance_policy
 
 RAG_EVAL_CASES = [
     {

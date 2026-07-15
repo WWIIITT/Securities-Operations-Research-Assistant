@@ -15,14 +15,14 @@ Edit `.env` and set `LLM_API_KEY`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, and
 
 The LLM-backed nodes use `LLM_MODEL` through `langchain-openai` / `ChatOpenAI`. If `LLM_API_KEY` is missing or the model endpoint is unavailable, SORA falls back to deterministic routing and template reports so local tests still run.
 
-The model itself does not know live prices. SORA must retrieve current market data through tools: `get_stock_data` uses yfinance, and nodes access it through the MCP client wrapper. Common index aliases such as `HK50` and `HSI` are mapped to yfinance symbols such as `^HSI`.
+The model itself does not know live prices. SORA retrieves current market data through tools: `get_stock_data` uses yfinance, and nodes access it through the MCP client wrapper. Common index aliases such as `HK50` and `HSI` are mapped to yfinance symbols such as `^HSI`.
 
 ## Run
 
 Initialize the local compliance vector store:
 
 ```powershell
-python rag.py
+python scripts/init_rag.py
 ```
 
 Launch the Gradio app:
@@ -34,7 +34,7 @@ python app.py
 Run the local stdio MCP server directly for smoke testing:
 
 ```powershell
-python mcp_server.py
+python scripts/run_mcp_server.py
 ```
 
 Run LangSmith evaluation after setting a LangSmith key:
@@ -53,8 +53,39 @@ Run tests:
 
 ```powershell
 python -m pytest tests -q
-python -m compileall .
+python -m compileall app.py evals.py rag_evals.py scripts sora tests
 ```
+
+## Project Structure
+
+```text
+Securities-Operations-Research-Assistant/
+|-- app.py                         # Gradio UI entrypoint
+|-- evals.py                       # LangSmith evaluation entrypoint
+|-- rag_evals.py                   # RAG retrieval benchmark entrypoint
+|-- scripts/                       # CLI wrappers; avoids root/core module name clashes
+|   |-- init_rag.py                # Chroma vector-store initialization
+|   `-- run_mcp_server.py          # Local stdio MCP server launcher
+|-- sora/                          # Core SORA package
+|   |-- graph.py                   # LangGraph workflow construction
+|   |-- nodes.py                   # Router, market analyst, compliance reviewer nodes
+|   |-- llm.py                     # ChatOpenAI / OpenAI-compatible model factory
+|   |-- mcp_client.py              # MCP-first tool caller with local fallback
+|   |-- mcp_server.py              # FastMCP tool server implementation
+|   |-- tools.py                   # yfinance and compliance RAG LangChain tools
+|   |-- rag.py                     # Chroma vector-store pipeline
+|   |-- market_symbols.py          # Market/index alias mapping, e.g. HK50 -> ^HSI
+|   `-- state.py                   # LangGraph AgentState TypedDict
+|-- docs/
+|   |-- rag.md                     # RAG pipeline and retrieval evaluation guide
+|   `-- ai_agent_interview_guide.md
+|-- tests/                         # Unit, integration, and regression tests
+|-- dummy_compliance.txt           # Sample compliance rules
+|-- requirements.txt
+`-- README.md
+```
+
+Root-level files are reserved for app/evaluation entrypoints and documentation. Core modules live under `sora/` only, so imports should use `sora.graph`, `sora.nodes`, `sora.rag`, and related package paths.
 
 ## Notes
 
@@ -62,6 +93,6 @@ python -m compileall .
 - `Can we promise guaranteed returns?` routes directly to compliance review.
 - The final report always includes retrieved compliance rules or a fallback disclosure rule.
 - LangSmith LLM call counts only appear when the LLM-backed nodes successfully call `ChatOpenAI`; embedding or deterministic fallback paths are not chat-model analysis calls.
-- MCP defaults to `MCP_ENABLED=true`; if the MCP package/server is unavailable, `mcp_client.py` falls back to local LangChain tools and records the fallback reason in the tool result.
+- MCP defaults to `MCP_ENABLED=true`; if the MCP package/server is unavailable, `sora.mcp_client` falls back to local LangChain tools and records the fallback reason in the tool result.
 - For live market questions, the LLM should summarize tool output. It should not answer from model memory or claim that no real-time data is available when yfinance returned current data.
 - RAG details live in `docs/rag.md`; AI agent interview notes live in `docs/ai_agent_interview_guide.md`.

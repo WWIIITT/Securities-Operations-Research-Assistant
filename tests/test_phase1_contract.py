@@ -27,7 +27,7 @@ def test_env_example_contains_required_variables():
 
 
 def test_agent_state_declares_shared_graph_fields():
-    from state import AgentState
+    from sora.state import AgentState
 
     hints = get_type_hints(AgentState, include_extras=True)
 
@@ -40,7 +40,7 @@ def test_agent_state_declares_shared_graph_fields():
 
 
 def test_stock_tool_handles_empty_ticker():
-    from tools import get_stock_data
+    from sora.tools import get_stock_data
 
     result = get_stock_data.invoke({"ticker": ""})
 
@@ -49,7 +49,7 @@ def test_stock_tool_handles_empty_ticker():
 
 
 def test_compliance_tool_handles_missing_rag_module():
-    from tools import search_compliance_policy
+    from sora.tools import search_compliance_policy
 
     result = search_compliance_policy.invoke({"query": "guaranteed returns"})
 

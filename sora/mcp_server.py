@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from tools import get_stock_data as stock_tool
-from tools import search_compliance_policy as compliance_tool
+from .tools import get_stock_data as stock_tool
+from .tools import search_compliance_policy as compliance_tool
 
 TOOL_NAMES = ("get_stock_data", "search_compliance_policy")
 

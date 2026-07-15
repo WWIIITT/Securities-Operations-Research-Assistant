@@ -1,5 +1,5 @@
-import nodes
-from market_symbols import resolve_market_symbol
+import sora.nodes as nodes
+from sora.market_symbols import resolve_market_symbol
 
 
 def test_hk50_alias_resolves_to_hang_seng_yfinance_symbol():

@@ -24,7 +24,7 @@ def test_dummy_compliance_file_contains_required_rules():
 
 
 def test_load_policy_documents_creates_one_document_per_rule():
-    from rag import load_policy_documents
+    from sora.rag import load_policy_documents
 
     documents = load_policy_documents()
 
@@ -35,7 +35,7 @@ def test_load_policy_documents_creates_one_document_per_rule():
 
 
 def test_initialize_vector_store_uses_documents_and_persistent_chroma_path(tmp_path):
-    from rag import COLLECTION_NAME, initialize_vector_store
+    from sora.rag import COLLECTION_NAME, initialize_vector_store
 
     embedding = object()
 

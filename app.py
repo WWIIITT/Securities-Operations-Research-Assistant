@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from graph import build_graph
+from sora.graph import build_graph
 
 APP_TITLE = "SORA - Securities Operations & Research Assistant"
 DEFAULT_EXAMPLES = [
     "Analyze AAPL stock",
     "Can we promise guaranteed returns to clients?",
     "Review this statement: Tesla is guaranteed to outperform the market.",
+    "What is the real time price of HK50 stock index?",
+    "What is the current price of BTC in USD?",
 ]
 
 APP_CSS = """

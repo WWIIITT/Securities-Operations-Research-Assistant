@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from market_symbols import resolve_market_symbol
+from .market_symbols import resolve_market_symbol
 
 try:
     from langchain_core.tools import tool
@@ -97,7 +97,7 @@ def search_compliance_policy(query: str) -> dict[str, Any]:
         }
 
     try:
-        from rag import get_vector_store
+        from .rag import get_vector_store
     except ImportError:
         return {
             "status": "error",

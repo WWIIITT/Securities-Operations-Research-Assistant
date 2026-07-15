@@ -49,6 +49,6 @@ python rag_evals.py
 ## 限制與 troubleshooting
 
 - 如果 endpoint 不支援 embeddings，`rag.py` 會在初始化向量庫時失敗；可設定 `EMBEDDING_MODEL` 或改用支援 embedding 的 provider。
-- 如果 `.chroma/` 舊資料和 `dummy_compliance.txt` 不一致，重新執行 `python rag.py` 或清理本地 Chroma directory。
+- 如果 `.chroma/` 舊資料和 `dummy_compliance.txt` 不一致，重新執行 `python scripts/init_rag.py` 或清理本地 Chroma directory。
 - 如果 compliance search 回傳空結果，先檢查 `dummy_compliance.txt` 是否存在，再看 `.env` 的 API key/base URL。
 - 如果 latency 過高，先量測 embedding API、Chroma IO、以及 query 數量；PoC 中 `k=3` 已足夠。
