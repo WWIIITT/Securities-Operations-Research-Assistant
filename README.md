@@ -78,7 +78,8 @@ Securities-Operations-Research-Assistant/
 |   `-- state.py                   # LangGraph AgentState TypedDict
 |-- docs/
 |   |-- rag.md                     # RAG pipeline and retrieval evaluation guide
-|   `-- ai_agent_interview_guide.md
+|   |-- ai_agent_interview_guide.md
+|   `-- jd_keyword_concepts.md     # JD keyword map with examples
 |-- tests/                         # Unit, integration, and regression tests
 |-- dummy_compliance.txt           # Sample compliance rules
 |-- requirements.txt
@@ -95,4 +96,4 @@ Root-level files are reserved for app/evaluation entrypoints and documentation. 
 - LangSmith LLM call counts only appear when the LLM-backed nodes successfully call `ChatOpenAI`; embedding or deterministic fallback paths are not chat-model analysis calls.
 - MCP defaults to `MCP_ENABLED=true`; if the MCP package/server is unavailable, `sora.mcp_client` falls back to local LangChain tools and records the fallback reason in the tool result.
 - For live market questions, the LLM should summarize tool output. It should not answer from model memory or claim that no real-time data is available when yfinance returned current data.
-- RAG details live in `docs/rag.md`; AI agent interview notes live in `docs/ai_agent_interview_guide.md`.
+- RAG details live in `docs/rag.md`; AI agent interview notes live in `docs/ai_agent_interview_guide.md`; JD keyword explanations live in `docs/jd_keyword_concepts.md`.

@@ -32,3 +32,22 @@ def test_ai_agent_interview_guide_covers_required_topics_with_examples():
         "例子",
     ]:
         assert phrase in content
+
+
+def test_jd_keyword_concepts_doc_covers_role_keywords_and_examples():
+    content = Path("docs/jd_keyword_concepts.md").read_text(encoding="utf-8")
+
+    for phrase in [
+        "AI Agents",
+        "agentic workflows",
+        "prompt engineering",
+        "workflow orchestration",
+        "MCP",
+        "RAG",
+        "LangGraph",
+        "OpenAI Codex",
+        "benchmarking",
+        "operational efficiency",
+        "例子",
+    ]:
+        assert phrase in content
