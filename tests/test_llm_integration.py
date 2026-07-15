@@ -38,6 +38,26 @@ def test_build_chat_model_reads_openai_compatible_env(monkeypatch):
     assert captured["model"] == "gpt-4o-mini"
 
 
+def test_build_chat_model_sets_timeout_and_disables_retries(monkeypatch):
+    import sora.llm as llm
+
+    captured = {}
+
+    class FakeChatOpenAI:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_TIMEOUT_SECONDS", "7")
+    monkeypatch.setenv("LLM_MAX_RETRIES", "0")
+    monkeypatch.setattr(llm, "ChatOpenAI", FakeChatOpenAI)
+
+    llm.build_chat_model()
+
+    assert captured["timeout"] == 7.0
+    assert captured["max_retries"] == 0
+
+
 def test_router_node_uses_llm_when_available(monkeypatch):
     fake_llm = FakeLLM("market_analysis")
     monkeypatch.setattr(nodes, "build_chat_model", lambda: fake_llm)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any, Callable
 
 from .market_symbols import resolve_market_symbol
@@ -23,6 +24,34 @@ except ImportError:  # Minimal local fallback for tests before dependencies are 
 
     def tool(fn: Callable[..., dict[str, Any]]) -> _FallbackTool:
         return _FallbackTool(fn)
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _env_enabled(name: str, default: bool = False) -> bool:
+    fallback = "true" if default else "false"
+    return os.getenv(name, fallback).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _mapping_get(mapping: Any, *keys: str) -> Any:
+    if not mapping:
+        return None
+    for key in keys:
+        try:
+            if hasattr(mapping, "get"):
+                value = mapping.get(key)
+            else:
+                value = mapping[key]
+        except Exception:
+            continue
+        if value is not None:
+            return value
+    return None
 
 
 @tool
@@ -49,8 +78,21 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
 
     try:
         stock = yf.Ticker(normalized_ticker)
-        info = stock.info or {}
-        history = stock.history(period="1d")
+        timeout = _env_float("YFINANCE_TIMEOUT_SECONDS", 8.0)
+        history = stock.history(period="1d", timeout=timeout)
+        try:
+            fast_info = stock.fast_info or {}
+        except Exception:
+            fast_info = {}
+        info = {}
+        if _env_enabled("YFINANCE_ENABLE_FULL_INFO", False):
+            try:
+                if hasattr(stock, "get_info"):
+                    info = stock.get_info() or {}
+                else:
+                    info = stock.info or {}
+            except Exception:
+                info = {}
     except Exception as exc:
         return {
             "status": "error",
@@ -59,7 +101,7 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
             "requested_symbol": symbol["query_symbol"],
         }
 
-    if history.empty and not info:
+    if history.empty and not info and not fast_info:
         return {
             "status": "error",
             "message": f"No market data found for ticker {normalized_ticker}.",
@@ -76,10 +118,15 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
         "ticker": normalized_ticker,
         "requested_symbol": symbol["query_symbol"],
         "company_name": info.get("shortName") or info.get("longName") or symbol["label"] or normalized_ticker,
-        "currency": info.get("currency"),
-        "current_price": info.get("currentPrice") or info.get("regularMarketPrice") or latest_close,
-        "previous_close": info.get("previousClose"),
-        "market_cap": info.get("marketCap"),
+        "currency": info.get("currency") or _mapping_get(fast_info, "currency"),
+        "current_price": (
+            info.get("currentPrice")
+            or info.get("regularMarketPrice")
+            or _mapping_get(fast_info, "last_price", "regular_market_price")
+            or latest_close
+        ),
+        "previous_close": info.get("previousClose") or _mapping_get(fast_info, "previous_close"),
+        "market_cap": info.get("marketCap") or _mapping_get(fast_info, "market_cap"),
         "sector": info.get("sector"),
         "summary": info.get("longBusinessSummary"),
     }

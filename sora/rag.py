@@ -10,6 +10,8 @@ DEFAULT_POLICY_PATH = Path("dummy_compliance.txt")
 DEFAULT_PERSIST_DIRECTORY = Path(".chroma")
 COLLECTION_NAME = "sora_compliance_rules"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+DEFAULT_EMBEDDING_TIMEOUT_SECONDS = 8.0
+DEFAULT_EMBEDDING_MAX_RETRIES = 0
 SUPPORTED_DATA_EXTENSIONS = {".txt", ".md"}
 
 
@@ -37,6 +39,20 @@ def _category_from_path(path: Path, data_directory: Path) -> str:
 def _rule_prefix(category: str) -> str:
     normalized = re.sub(r"[^A-Za-z0-9]+", "_", category).strip("_")
     return (normalized or "RULE").upper()
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
 
 
 def _load_single_policy_file(
@@ -153,6 +169,8 @@ def build_embeddings() -> Any:
         kwargs["api_key"] = api_key
     if base_url:
         kwargs["base_url"] = base_url
+    kwargs["timeout"] = _env_float("EMBEDDING_TIMEOUT_SECONDS", DEFAULT_EMBEDDING_TIMEOUT_SECONDS)
+    kwargs["max_retries"] = _env_int("EMBEDDING_MAX_RETRIES", DEFAULT_EMBEDDING_MAX_RETRIES)
 
     return OpenAIEmbeddings(**kwargs)
 

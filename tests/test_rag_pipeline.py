@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 
 class FakeVectorStore:
@@ -87,3 +88,28 @@ def test_initialize_vector_store_uses_documents_and_persistent_chroma_path(tmp_p
     assert FakeVectorStore.last_call["collection_name"] == COLLECTION_NAME
     assert FakeVectorStore.last_call["persist_directory"] == str(tmp_path)
     assert len(FakeVectorStore.last_call["documents"]) >= 3
+
+
+def test_build_embeddings_sets_timeout_and_disables_retries(monkeypatch):
+    import sys
+    from sora.rag import build_embeddings
+
+    captured = {}
+
+    class FakeOpenAIEmbeddings:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "langchain_openai",
+        SimpleNamespace(OpenAIEmbeddings=FakeOpenAIEmbeddings),
+    )
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("EMBEDDING_TIMEOUT_SECONDS", "6")
+    monkeypatch.setenv("EMBEDDING_MAX_RETRIES", "0")
+
+    build_embeddings()
+
+    assert captured["timeout"] == 6.0
+    assert captured["max_retries"] == 0

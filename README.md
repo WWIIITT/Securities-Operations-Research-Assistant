@@ -17,6 +17,8 @@ The LLM-backed nodes use `LLM_MODEL` through `langchain-openai` / `ChatOpenAI`. 
 
 The model itself does not know live prices. SORA retrieves current market data through tools: `get_stock_data` uses yfinance, and nodes access it through the MCP client wrapper. Common index aliases such as `HK50` and `HSI` are mapped to yfinance symbols such as `^HSI`.
 
+Runtime calls are bounded by timeout settings so slow external APIs do not make one query hang for minutes. The defaults are `LLM_TIMEOUT_SECONDS=8`, `EMBEDDING_TIMEOUT_SECONDS=8`, `YFINANCE_TIMEOUT_SECONDS=8`, `LLM_MAX_RETRIES=0`, and `EMBEDDING_MAX_RETRIES=0`.
+
 ## Run
 
 Initialize the local compliance vector store:
@@ -103,4 +105,5 @@ Root-level files are reserved for app/evaluation entrypoints and documentation. 
 - LangSmith LLM call counts only appear when the LLM-backed nodes successfully call `ChatOpenAI`; embedding or deterministic fallback paths are not chat-model analysis calls.
 - MCP defaults to `MCP_ENABLED=true`; if the MCP package/server is unavailable, `sora.mcp_client` falls back to local LangChain tools and records the fallback reason in the tool result.
 - For live market questions, the LLM should summarize tool output. It should not answer from model memory or claim that no real-time data is available when yfinance returned current data.
+- If a provider is slow, lower `LLM_TIMEOUT_SECONDS`, `EMBEDDING_TIMEOUT_SECONDS`, `YFINANCE_TIMEOUT_SECONDS`, or set `LLM_ENABLED=false` for deterministic local fallback during demos.
 - RAG details live in `docs/rag.md`; AI agent interview notes live in `docs/ai_agent_interview_guide.md`; JD keyword explanations live in `docs/jd_keyword_concepts.md`.
