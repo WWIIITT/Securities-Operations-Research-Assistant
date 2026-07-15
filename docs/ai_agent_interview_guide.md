@@ -65,7 +65,7 @@ SORA 用 RAG 找 compliance policy rules，Reviewer 必須帶著 retrieved rules
 
 例子：
 
-1. 查詢「Can we guarantee returns?」應命中 `RULE-001`。
+1. 查詢「Can we guarantee returns?」應命中 `COMPLIANCE-001`。
 2. 查詢「Should we disclose risks?」應命中 `RULE-002`。
 
 ## Vector database / database
@@ -88,7 +88,7 @@ SORA 有兩層 benchmark：LangSmith eval 測 final response 是否有 disclosur
 例子：
 
 1. Route benchmark：`Analyze AAPL stock` 預期 route 是 `market_analysis`。
-2. RAG benchmark：`Can we guarantee returns?` 預期 top 3 包含 `RULE-001`。
+2. RAG benchmark：`Can we guarantee returns?` 預期 top 3 包含 `COMPLIANCE-001`。
 
 ## Evaluation for accuracy, reliability, and user experience
 

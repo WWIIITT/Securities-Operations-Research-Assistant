@@ -11,19 +11,19 @@ from sora.tools import search_compliance_policy
 RAG_EVAL_CASES = [
     {
         "query": "Can we guarantee returns to clients?",
-        "expected_rule_ids": ["RULE-001"],
+        "expected_rule_ids": ["COMPLIANCE-001"],
     },
     {
         "query": "What risk disclosure is required in market commentary?",
-        "expected_rule_ids": ["RULE-002"],
+        "expected_rule_ids": ["COMPLIANCE-002"],
     },
     {
         "query": "Is this output investment advice?",
-        "expected_rule_ids": ["RULE-003"],
+        "expected_rule_ids": ["COMPLIANCE-003"],
     },
     {
         "query": "Should we mention limitations and data uncertainty?",
-        "expected_rule_ids": ["RULE-004"],
+        "expected_rule_ids": ["COMPLIANCE-004"],
     },
 ]
 

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
+DEFAULT_DATA_DIRECTORY = Path("data")
 DEFAULT_POLICY_PATH = Path("dummy_compliance.txt")
 DEFAULT_PERSIST_DIRECTORY = Path(".chroma")
 COLLECTION_NAME = "sora_compliance_rules"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+SUPPORTED_DATA_EXTENSIONS = {".txt", ".md"}
 
 
 try:
@@ -19,28 +22,116 @@ except ImportError:  # Keeps local contract tests useful before dependencies are
             self.metadata = metadata or {}
 
 
-def load_policy_documents(policy_path: str | Path = DEFAULT_POLICY_PATH) -> list[Document]:
-    """Load one compliance rule per non-empty line from the local policy file."""
+def _clean_rule_line(line: str) -> str:
+    return line.strip().lstrip("-*0123456789. ").strip()
+
+
+def _category_from_path(path: Path, data_directory: Path) -> str:
+    try:
+        relative = path.relative_to(data_directory)
+    except ValueError:
+        return path.parent.name or "general"
+    return relative.parts[0] if len(relative.parts) > 1 else "general"
+
+
+def _rule_prefix(category: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9]+", "_", category).strip("_")
+    return (normalized or "RULE").upper()
+
+
+def _load_single_policy_file(
+    policy_path: str | Path,
+    *,
+    category: str = "legacy",
+    source_name: str | None = None,
+) -> list[Document]:
+    """Load one rule per non-empty line from a single policy file."""
     path = Path(policy_path)
     if not path.exists():
         raise FileNotFoundError(f"Compliance policy file not found: {path}")
 
-    lines = [
-        line.strip().lstrip("-*0123456789. ")
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    source = source_name or path.name
+    lines = [_clean_rule_line(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    lines = [line for line in lines if line]
 
     return [
         Document(
             page_content=line,
             metadata={
-                "source": path.name,
-                "rule_id": f"RULE-{index:03d}",
+                "source": source,
+                "category": category,
+                "rule_id": f"{_rule_prefix(category)}-{index:03d}",
+                "file_type": path.suffix.lower(),
             },
         )
         for index, line in enumerate(lines, start=1)
     ]
+
+
+def load_data_documents(data_directory: str | Path = DEFAULT_DATA_DIRECTORY) -> list[Document]:
+    """Load RAG documents from categorized files under the data directory."""
+    root = Path(data_directory)
+    if not root.exists():
+        return []
+
+    files = sorted(
+        path
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in SUPPORTED_DATA_EXTENSIONS
+    )
+    documents: list[Document] = []
+    category_counts: dict[str, int] = {}
+
+    for path in files:
+        category = _category_from_path(path, root)
+        source = path.relative_to(root).as_posix()
+        section = ""
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            stripped = raw_line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("#"):
+                section = stripped.lstrip("#").strip()
+                continue
+
+            content = _clean_rule_line(stripped)
+            if not content:
+                continue
+
+            category_counts[category] = category_counts.get(category, 0) + 1
+            metadata = {
+                "source": source,
+                "category": category,
+                "rule_id": f"{_rule_prefix(category)}-{category_counts[category]:03d}",
+                "file_type": path.suffix.lower(),
+            }
+            if section:
+                metadata["section"] = section
+
+            documents.append(Document(page_content=content, metadata=metadata))
+
+    return documents
+
+
+def load_policy_documents(
+    policy_path: str | Path | None = None,
+    data_directory: str | Path = DEFAULT_DATA_DIRECTORY,
+) -> list[Document]:
+    """Load policy/RAG documents, preferring categorized files under data/."""
+    if policy_path is not None:
+        return _load_single_policy_file(policy_path)
+
+    documents = load_data_documents(data_directory)
+    if documents:
+        return documents
+
+    if DEFAULT_POLICY_PATH.exists():
+        return _load_single_policy_file(DEFAULT_POLICY_PATH)
+
+    raise FileNotFoundError(
+        f"No RAG data files found in {data_directory} and fallback file "
+        f"{DEFAULT_POLICY_PATH} does not exist."
+    )
 
 
 def build_embeddings() -> Any:
@@ -67,7 +158,8 @@ def build_embeddings() -> Any:
 
 
 def initialize_vector_store(
-    policy_path: str | Path = DEFAULT_POLICY_PATH,
+    policy_path: str | Path | None = None,
+    data_directory: str | Path = DEFAULT_DATA_DIRECTORY,
     persist_directory: str | Path = DEFAULT_PERSIST_DIRECTORY,
     collection_name: str = COLLECTION_NAME,
     embeddings: Any | None = None,
@@ -83,9 +175,9 @@ def initialize_vector_store(
             ) from exc
         vector_store_cls = Chroma
 
-    documents = load_policy_documents(policy_path)
+    documents = load_policy_documents(policy_path=policy_path, data_directory=data_directory)
     if not documents:
-        raise ValueError(f"No compliance rules found in {policy_path}.")
+        raise ValueError(f"No RAG documents found in {data_directory}.")
 
     persist_path = Path(persist_directory)
     persist_path.mkdir(parents=True, exist_ok=True)

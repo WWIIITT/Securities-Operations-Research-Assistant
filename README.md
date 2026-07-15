@@ -66,6 +66,11 @@ Securities-Operations-Research-Assistant/
 |-- scripts/                       # CLI wrappers; avoids root/core module name clashes
 |   |-- init_rag.py                # Chroma vector-store initialization
 |   `-- run_mcp_server.py          # Local stdio MCP server launcher
+|-- data/                          # Categorized RAG source documents
+|   |-- compliance/
+|   |-- market/
+|   |-- products/
+|   `-- risk/
 |-- sora/                          # Core SORA package
 |   |-- graph.py                   # LangGraph workflow construction
 |   |-- nodes.py                   # Router, market analyst, compliance reviewer nodes
@@ -78,10 +83,11 @@ Securities-Operations-Research-Assistant/
 |   `-- state.py                   # LangGraph AgentState TypedDict
 |-- docs/
 |   |-- rag.md                     # RAG pipeline and retrieval evaluation guide
+|   |-- rag/                       # Category-specific RAG operations docs
 |   |-- ai_agent_interview_guide.md
 |   `-- jd_keyword_concepts.md     # JD keyword map with examples
 |-- tests/                         # Unit, integration, and regression tests
-|-- dummy_compliance.txt           # Sample compliance rules
+|-- dummy_compliance.txt           # Legacy fallback sample compliance rules
 |-- requirements.txt
 `-- README.md
 ```
@@ -92,6 +98,7 @@ Root-level files are reserved for app/evaluation entrypoints and documentation. 
 
 - `Analyze AAPL stock` routes through the market analyst and then the compliance reviewer.
 - `Can we promise guaranteed returns?` routes directly to compliance review.
+- RAG loads categorized source documents from `data/` by default; `dummy_compliance.txt` is only a legacy fallback.
 - The final report always includes retrieved compliance rules or a fallback disclosure rule.
 - LangSmith LLM call counts only appear when the LLM-backed nodes successfully call `ChatOpenAI`; embedding or deterministic fallback paths are not chat-model analysis calls.
 - MCP defaults to `MCP_ENABLED=true`; if the MCP package/server is unavailable, `sora.mcp_client` falls back to local LangChain tools and records the fallback reason in the tool result.

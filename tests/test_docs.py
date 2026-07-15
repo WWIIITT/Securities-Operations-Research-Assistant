@@ -55,3 +55,18 @@ def test_jd_keyword_concepts_doc_covers_role_keywords_and_examples():
         "面試回答重點",
     ]:
         assert phrase in content
+
+
+def test_rag_category_docs_cover_operational_topics():
+    expected_docs = {
+        "docs/rag/README.md": ["RAG documentation map", "SORA", "category"],
+        "docs/rag/data_preparation.md": ["chunking", "metadata", "data/"],
+        "docs/rag/retrieval_and_evaluation.md": ["hit@1", "hit@3", "MRR", "latency"],
+        "docs/rag/compliance_guardrails.md": ["guardrail", "not investment advice", "FALLBACK-RULE"],
+        "docs/rag/operations_troubleshooting.md": ["troubleshooting", "Chroma", "embedding"],
+    }
+
+    for file_path, phrases in expected_docs.items():
+        content = Path(file_path).read_text(encoding="utf-8")
+        for phrase in phrases:
+            assert phrase in content

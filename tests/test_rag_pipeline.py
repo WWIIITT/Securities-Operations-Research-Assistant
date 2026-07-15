@@ -28,10 +28,47 @@ def test_load_policy_documents_creates_one_document_per_rule():
 
     documents = load_policy_documents()
 
-    assert len(documents) >= 3
+    assert len(documents) >= 8
     assert all(document.page_content.strip() for document in documents)
-    assert all(document.metadata["source"] == "dummy_compliance.txt" for document in documents)
-    assert documents[0].metadata["rule_id"] == "RULE-001"
+    assert all(document.metadata["source"].startswith(("compliance/", "market/", "products/", "risk/")) for document in documents)
+    assert {document.metadata["category"] for document in documents} >= {
+        "compliance",
+        "market",
+        "products",
+        "risk",
+    }
+    assert documents[0].metadata["rule_id"].startswith("COMPLIANCE-")
+
+
+def test_load_policy_documents_reads_all_supported_files_from_data_directory(tmp_path):
+    from sora.rag import load_policy_documents
+
+    compliance_dir = tmp_path / "compliance"
+    risk_dir = tmp_path / "risk"
+    compliance_dir.mkdir()
+    risk_dir.mkdir()
+    (compliance_dir / "rules.txt").write_text(
+        "Do not guarantee returns.\nAlways disclose risks.\n",
+        encoding="utf-8",
+    )
+    (risk_dir / "crypto.md").write_text(
+        "# Crypto\n- Digital assets may be volatile.\n",
+        encoding="utf-8",
+    )
+
+    documents = load_policy_documents(data_directory=tmp_path)
+
+    assert [document.page_content for document in documents] == [
+        "Do not guarantee returns.",
+        "Always disclose risks.",
+        "Digital assets may be volatile.",
+    ]
+    assert [document.metadata["category"] for document in documents] == [
+        "compliance",
+        "compliance",
+        "risk",
+    ]
+    assert documents[2].metadata["section"] == "Crypto"
 
 
 def test_initialize_vector_store_uses_documents_and_persistent_chroma_path(tmp_path):
