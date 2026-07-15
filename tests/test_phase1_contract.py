@@ -15,6 +15,7 @@ def test_env_example_contains_required_variables():
         "EMBEDDING_TIMEOUT_SECONDS",
         "EMBEDDING_MAX_RETRIES",
         "YFINANCE_TIMEOUT_SECONDS",
+        "EXTERNAL_API_TIMEOUT_SECONDS",
         "LANGSMITH_TRACING",
         "LANGSMITH_ENDPOINT",
         "LANGSMITH_API_KEY",
@@ -111,3 +112,38 @@ def test_stock_tool_passes_timeout_to_yfinance(monkeypatch):
     assert result["status"] == "ok"
     assert captured["ticker"] == "AAPL"
     assert captured["history_kwargs"]["timeout"] == 4.0
+
+
+def test_crypto_price_tool_calls_external_api_with_timeout(monkeypatch):
+    import json
+    import urllib.request
+    from sora.tools import get_crypto_price
+
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        @staticmethod
+        def read():
+            return json.dumps({"bitcoin": {"usd": 65000.5}}).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setenv("EXTERNAL_API_TIMEOUT_SECONDS", "3")
+
+    result = get_crypto_price.invoke({"asset": "BTC", "vs_currency": "usd"})
+
+    assert result["status"] == "ok"
+    assert result["asset_id"] == "bitcoin"
+    assert result["current_price"] == 65000.5
+    assert captured["timeout"] == 3.0
+    assert "api.coingecko.com" in captured["url"]

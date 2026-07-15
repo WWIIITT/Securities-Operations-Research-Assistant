@@ -6,10 +6,11 @@ import os
 import sys
 from typing import Any
 
-from .tools import get_stock_data, search_compliance_policy
+from .tools import get_crypto_price, get_stock_data, search_compliance_policy
 
 LOCAL_TOOLS = {
     "get_stock_data": get_stock_data,
+    "get_crypto_price": get_crypto_price,
     "search_compliance_policy": search_compliance_policy,
 }
 

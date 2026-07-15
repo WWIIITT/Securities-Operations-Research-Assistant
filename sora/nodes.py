@@ -7,6 +7,7 @@ from .llm import build_chat_model, message_content
 from .market_symbols import MARKET_SYMBOL_ALIASES, resolve_market_symbol
 from .mcp_client import call_tool
 from .state import AgentState
+from .tools import CRYPTO_ASSET_ALIASES, resolve_crypto_asset
 
 MARKET_ROUTE = "market_analysis"
 COMPLIANCE_ROUTE = "compliance_check"
@@ -14,6 +15,13 @@ COMPLIANCE_ROUTE = "compliance_check"
 MARKET_KEYWORDS = {
     "analyze",
     "analysis",
+    "bitcoin",
+    "btc",
+    "crypto",
+    "cryptocurrency",
+    "digital",
+    "eth",
+    "ethereum",
     "market",
     "price",
     "quote",
@@ -139,6 +147,15 @@ def extract_ticker(text: str) -> str:
     return ""
 
 
+def extract_crypto_asset(text: str) -> str:
+    """Extract a supported crypto asset alias from a user query."""
+    normalized_text = (text or "").lower()
+    for alias in sorted(CRYPTO_ASSET_ALIASES, key=len, reverse=True):
+        if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", normalized_text):
+            return CRYPTO_ASSET_ALIASES[alias]["asset_id"]
+    return ""
+
+
 def router_node(state: AgentState) -> dict[str, Any]:
     """Route the user request to market analysis or compliance review."""
     user_text = _latest_user_text(state)
@@ -163,6 +180,40 @@ def router_node(state: AgentState) -> dict[str, Any]:
 def analyst_node(state: AgentState) -> dict[str, Any]:
     """Call the market data tool and write a concise analyst report."""
     user_text = _latest_user_text(state)
+    crypto_asset = extract_crypto_asset(user_text)
+    if crypto_asset:
+        crypto_result = call_tool("get_crypto_price", {"asset": crypto_asset, "vs_currency": "usd"})
+        normalized_ticker = crypto_result.get("symbol") or resolve_crypto_asset(crypto_asset)["symbol"]
+        fallback_report = (
+            "Market Analyst Report\n"
+            f"Asset: {crypto_result.get('label') or crypto_asset}\n"
+            f"Symbol: {normalized_ticker or 'Unavailable'}\n"
+            f"Status: {'Data available' if crypto_result.get('status') == 'ok' else 'Data unavailable'}\n"
+            f"Current price: {crypto_result.get('current_price', 'Not available')} "
+            f"{str(crypto_result.get('vs_currency') or 'usd').upper()}\n"
+            f"Market cap: {crypto_result.get('market_cap', 'Not available')}\n"
+            f"24h change: {crypto_result.get('price_change_percentage_24h', 'Not available')}\n"
+            f"Source: {crypto_result.get('source') or 'external crypto price API'}\n"
+            f"Message: {crypto_result.get('message') or 'External crypto price data retrieved.'}"
+        )
+        try:
+            report = _invoke_llm(
+                "You are SORA's Market Analyst. Write a concise, factual crypto market report. "
+                "Use the provided external tool output as the source of current crypto market data. "
+                "Do not provide investment advice and do not guarantee returns.",
+                f"User query: {user_text}\nExternal crypto tool output: {crypto_result}",
+            ) or fallback_report
+            if crypto_result.get("status") == "ok" and _claims_no_realtime_access(report):
+                report = fallback_report
+        except Exception:
+            report = fallback_report
+
+        return {
+            "ticker": normalized_ticker or "",
+            "analyst_report": report,
+            "messages": [{"role": "assistant", "content": report}],
+        }
+
     ticker = state.get("ticker") or extract_ticker(user_text)
 
     stock_result = call_tool("get_stock_data", {"ticker": ticker})

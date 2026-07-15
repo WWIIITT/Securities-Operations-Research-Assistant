@@ -1,9 +1,21 @@
 from __future__ import annotations
 
+import json
 import os
+import urllib.parse
+import urllib.request
 from typing import Any, Callable
 
 from .market_symbols import resolve_market_symbol
+
+CRYPTO_ASSET_ALIASES = {
+    "btc": {"asset_id": "bitcoin", "symbol": "BTC", "label": "Bitcoin"},
+    "bitcoin": {"asset_id": "bitcoin", "symbol": "BTC", "label": "Bitcoin"},
+    "eth": {"asset_id": "ethereum", "symbol": "ETH", "label": "Ethereum"},
+    "ethereum": {"asset_id": "ethereum", "symbol": "ETH", "label": "Ethereum"},
+    "sol": {"asset_id": "solana", "symbol": "SOL", "label": "Solana"},
+    "solana": {"asset_id": "solana", "symbol": "SOL", "label": "Solana"},
+}
 
 try:
     from langchain_core.tools import tool
@@ -52,6 +64,22 @@ def _mapping_get(mapping: Any, *keys: str) -> Any:
         if value is not None:
             return value
     return None
+
+
+def resolve_crypto_asset(asset: str) -> dict[str, str]:
+    """Resolve common crypto aliases to CoinGecko asset ids."""
+    normalized = (asset or "").strip().lower()
+    if not normalized:
+        return {"query_asset": "", "asset_id": "", "symbol": "", "label": ""}
+    return CRYPTO_ASSET_ALIASES.get(
+        normalized,
+        {
+            "query_asset": asset.strip(),
+            "asset_id": normalized,
+            "symbol": normalized.upper(),
+            "label": asset.strip(),
+        },
+    ) | {"query_asset": asset.strip()}
 
 
 @tool
@@ -129,6 +157,75 @@ def get_stock_data(ticker: str) -> dict[str, Any]:
         "market_cap": info.get("marketCap") or _mapping_get(fast_info, "market_cap"),
         "sector": info.get("sector"),
         "summary": info.get("longBusinessSummary"),
+    }
+
+
+@tool
+def get_crypto_price(asset: str, vs_currency: str = "usd") -> dict[str, Any]:
+    """Fetch external cryptocurrency price data from the public CoinGecko API."""
+    resolved = resolve_crypto_asset(asset)
+    if not resolved["asset_id"]:
+        return {
+            "status": "error",
+            "message": "A non-empty crypto asset is required.",
+            "asset": "",
+        }
+
+    currency = (vs_currency or "usd").strip().lower()
+    timeout = _env_float("EXTERNAL_API_TIMEOUT_SECONDS", 8.0)
+    query = urllib.parse.urlencode(
+        {
+            "ids": resolved["asset_id"],
+            "vs_currencies": currency,
+            "include_market_cap": "true",
+            "include_24hr_change": "true",
+            "include_last_updated_at": "true",
+        }
+    )
+    url = f"https://api.coingecko.com/api/v3/simple/price?{query}"
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "SORA-MCP/0.1",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        return {
+            "status": "error",
+            "message": f"Unable to fetch external crypto price for {resolved['asset_id']}: {exc}",
+            "asset": resolved["query_asset"],
+            "asset_id": resolved["asset_id"],
+            "source": "coingecko",
+        }
+
+    asset_payload = payload.get(resolved["asset_id"], {})
+    price = asset_payload.get(currency)
+    if price is None:
+        return {
+            "status": "error",
+            "message": f"No {currency.upper()} price returned for {resolved['asset_id']}.",
+            "asset": resolved["query_asset"],
+            "asset_id": resolved["asset_id"],
+            "source": "coingecko",
+        }
+
+    return {
+        "status": "ok",
+        "asset": resolved["query_asset"],
+        "asset_id": resolved["asset_id"],
+        "symbol": resolved["symbol"],
+        "label": resolved["label"],
+        "vs_currency": currency,
+        "current_price": price,
+        "market_cap": asset_payload.get(f"{currency}_market_cap"),
+        "price_change_percentage_24h": asset_payload.get(f"{currency}_24h_change"),
+        "last_updated_at": asset_payload.get("last_updated_at"),
+        "source": "coingecko",
     }
 
 

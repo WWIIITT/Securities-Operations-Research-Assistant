@@ -117,3 +117,32 @@ def test_build_graph_invokes_analyst_then_reviewer(monkeypatch):
     assert result["ticker"] == "AAPL"
     assert "Apple Inc." in result["analyst_report"]
     assert "Do not guarantee returns." in result["analyst_report"]
+
+
+def test_analyst_node_uses_external_crypto_mcp_tool_for_bitcoin(monkeypatch):
+    monkeypatch.setattr(nodes, "build_chat_model", lambda: (_ for _ in ()).throw(RuntimeError("no llm")))
+
+    calls = []
+
+    def fake_call_tool(name, payload):
+        calls.append((name, payload))
+        if name == "get_crypto_price":
+            return {
+                "status": "ok",
+                "asset": "BTC",
+                "asset_id": "bitcoin",
+                "vs_currency": "usd",
+                "current_price": 65000.5,
+                "market_cap": 1200000000000,
+                "price_change_percentage_24h": 2.5,
+                "source": "coingecko",
+            }
+        return {"status": "ok", "rules": []}
+
+    monkeypatch.setattr(nodes, "call_tool", fake_call_tool)
+
+    result = nodes.analyst_node({"messages": [{"role": "user", "content": "What is Bitcoin price now?"}]})
+
+    assert calls == [("get_crypto_price", {"asset": "bitcoin", "vs_currency": "usd"})]
+    assert result["ticker"] == "BTC"
+    assert "65000.5" in result["analyst_report"]
