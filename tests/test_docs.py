@@ -48,6 +48,10 @@ def test_jd_keyword_concepts_doc_covers_role_keywords_and_examples():
         "OpenAI Codex",
         "benchmarking",
         "operational efficiency",
-        "例子",
+        "詳細說明",
+        "SORA 實作細節",
+        "實務例子 A",
+        "實務例子 B",
+        "面試回答重點",
     ]:
         assert phrase in content
